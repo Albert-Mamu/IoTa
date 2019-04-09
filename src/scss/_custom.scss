@@ -1,0 +1,25 @@
+// Here you can add other styles
+.sidebar {
+    background-color: #ffff;
+}
+.sidebar .nav-link {
+    color: #2f353a;
+}
+.sidebar .nav-link.active {
+    background-color: #63c2de;
+}
+.sidebar .sidebar-minimizer{
+    background-color: #ffff;
+}
+.sidebar .sidebar-minimizer:hover{
+    background-color: #20a8d8;
+}
+.sidebar-minimized .sidebar .sidebar-minimizer {
+    background-color: #ffff;
+}
+.sidebar-minimized .sidebar .sidebar-minimizer:hover {
+    background-color: #20a8d8;
+}
+.app-footer {
+    background-color: #ffff;
+}
