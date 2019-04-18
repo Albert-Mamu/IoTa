@@ -35,7 +35,7 @@ class DefaultLayout extends Component {
   render() {
     // Check is user already login?
     if ( localStorage.getItem('isLogin') !== 'true' ){
-	return ( <Redirect to='/login' /> );
+	    return ( <Redirect to='/login' /> );
     }
 
     return (
