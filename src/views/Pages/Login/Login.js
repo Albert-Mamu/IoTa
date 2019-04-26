@@ -2,7 +2,14 @@ import React, { Component } from 'react';
 import { Redirect, Link } from 'react-router-dom';
 import { Button, Card, CardBody, CardGroup, Col, Container, Form, Input, InputGroup, InputGroupAddon, InputGroupText, Row } from 'reactstrap';
 
+import Swal from 'sweetalert2';
+
 var oThis = null;
+
+var token = "";
+var body = null;
+var serverDataBody = null;
+var postData = {};
 
 class Login extends Component {
     constructor(props) {
@@ -11,12 +18,11 @@ class Login extends Component {
       localStorage.clear();
 	  
 	    // Set Default Value
-	    localStorage.setItem('auth', '' );
 	    localStorage.setItem('isLogin', false );
-	    localStorage.setItem('serverDown', false );
 		
 	    localStorage.setItem('userid', null );
-	    localStorage.setItem('username', null );
+      localStorage.setItem('username', null );
+      localStorage.setItem('userlevel', null );
 	    localStorage.setItem('fullname', null );
 	    localStorage.setItem('gender', null );
 	    localStorage.setItem('birthdate', null );
@@ -34,6 +40,135 @@ class Login extends Component {
 	    oThis = this;
     }
 
+  handleLogin = () => {
+      oThis.handleGetToken(function (callback) {
+        oThis.handleCheckLogin( function (callback, userid) {
+            if ( localStorage.getItem('isLogin') === 'true' ){
+              oThis.props.history.push('/dashboard',null);				
+            }else{
+
+            }
+        });
+      });
+  }
+
+  // ======================================================================
+  initServerVars = () => {
+      serverDataBody = null;
+  }
+
+  handleGetToken = (callback) => {
+      token = "";
+      oThis.initServerVars();
+      var http = require("http");
+      var options = {
+        "method": "GET",
+        "hostname": 'ingen4u.ip-dynamic.com',
+        "port": 3100,
+        "path": "/token"
+      };
+      var req =  http.request(options, function (res) {
+          var chunks = [];
+          res.on("data", function (chunk) {
+              chunks.push(chunk);
+          });
+          res.on("end", function () {
+              body = Buffer.concat(chunks);
+              if ( body !== null || body !== '' ){
+                  if ( oThis.IsJsonString( body ) === true ){
+                      serverDataBody = JSON.parse( body.toString() );
+                      if ( serverDataBody['status'] === 1 ){
+                          token = serverDataBody['data'];
+                          callback(1);
+                      }else{
+                          oThis.displayErrorNoData(serverDataBody['message']);
+                          callback(0);
+                      }
+                  }else{
+                      oThis.displayErrorNoData();
+                      callback(0);
+                  }
+              }else{
+                  oThis.displayErrorNoData();
+                  callback(0);
+              }
+          });
+      });
+      req.write('');
+      req.end();
+  }
+
+  handleCheckLogin = (callback) => {
+    oThis.initServerVars();
+    postData["mode"] = 1;
+    postData['username'] = this.state.inputUseName;
+    postData['password'] = this.state.inputUsePassword;
+
+    var http = require("http");
+    var options = {
+      "method": "POST",
+      "hostname": 'ingen4u.ip-dynamic.com',
+      "port": 3100,
+      "path": "/users",
+      "headers": {
+        "Content-Type": "application/json"
+      }
+    };
+
+    var jsonData = JSON.stringify(postData);
+    var strRequest = "{\n\t\"token\": \"" + token + "\","+
+                     "\n\t\"data\": " + jsonData + "\n}";
+
+    var req =  http.request(options, function (res) {
+        var chunks = [];
+        res.on("data", function (chunk) {
+            chunks.push(chunk);
+        });
+        res.on("end", function () {
+            body = Buffer.concat(chunks);
+            if ( body !== null || body !== '' ){
+                if ( oThis.IsJsonString( body ) === true ){
+                    serverDataBody = JSON.parse( body.toString() );
+                    if ( serverDataBody['status'] === 1 ){
+
+                        localStorage.setItem('isLogin', true );
+                        localStorage.setItem('userid', serverDataBody['data'][0]['userid'] );
+                        localStorage.setItem('userlevel', serverDataBody['data'][0]['level'] );
+                        localStorage.setItem('username', serverDataBody['data'][0]['username'] );
+                        localStorage.setItem('fullname', serverDataBody['data'][0]['fullname'] );
+                        localStorage.setItem('gender', serverDataBody['data'][0]['gender'] );
+                        localStorage.setItem('birthdate', serverDataBody['data'][0]['birthdate'] );
+                        localStorage.setItem('photos', serverDataBody['data'][0]['photo'] );
+                        localStorage.setItem('email', serverDataBody['data'][0]['email'] );
+
+                        callback(1);
+                    }else{
+                        oThis.displayErrorNoData(serverDataBody['message']);
+                        callback(0);
+                    }
+                }else{
+                    oThis.displayErrorNoData();
+                    callback(0);
+                }
+            }else{
+                oThis.displayErrorNoData();
+                callback(0);
+            }
+        });
+    });
+    req.write(strRequest);
+    req.end();
+  }
+
+  // Display Alert Error
+  displayErrorNoData = (message) => {
+        if ( message === '' || message === null ){
+            Swal.fire('Oops...', 'Something went wrong!', 'error');
+        }else{
+            Swal.fire('Oops...', message, 'error');
+        }
+  }
+
   // Is Input String are JSON?
   IsJsonString(str) {
     try {
@@ -43,7 +178,8 @@ class Login extends Component {
     }
     return true;
   }
-  
+  // =======================================================================
+
   userLogin = () => {
 	    localStorage.setItem('isLogin', false);
 	  
@@ -55,20 +191,10 @@ class Login extends Component {
 	    }else{
 		    this.setState({
 			    invalidInput: false
-		    });			
+		    });
 	    }
 	
-	    if ( this.state.inputUseName === 'admin' && this.state.inputUsePassword === 'admin' ){
-		      this.setState({
-			    invalidInput: false
-		    });	
-		    localStorage.setItem('isLogin', true);
-	      }else{
-		      this.setState({
-			    invalidInput: true
-		    });			
-		    localStorage.setItem('isLogin', false);
-	    }
+      oThis.handleLogin();
   }
     
   render() {

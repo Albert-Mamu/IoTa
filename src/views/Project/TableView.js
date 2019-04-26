@@ -1,7 +1,6 @@
 import React, { Component, } from 'react';
 
 import Swal from 'sweetalert2';
-import { read } from 'fs';
 
 var oThis = null;
 
@@ -16,20 +15,31 @@ class TableView extends Component {
         super(props);
         oThis = this;
 
-        oThis.handleGetAllUser();
+        oThis.initDataPost();
+        oThis.handleGetAllProject();
     }
 
-    confirmDelete = (userid) => {
+    componentDidUpdate(){
+        postData = {};
+    }
+
+    initDataPost = () => {
+        postData = {};
+        postData['projectowner'] = Number( localStorage.getItem('userid') );
+        postData['ownername'] = localStorage.getItem('fullname');
+    }
+
+    confirmDelete = (projectid) => {
         Swal.fire({
           title: 'Are you sure?',
-          text: 'This will delete the selected user from the platform!',
+          text: 'This will delete the selected project from the platform!',
           type: 'warning',
           showCancelButton: true,
           confirmButtonText: 'Yes, delete it',
           cancelButtonText: 'No, i change my mind'
         }).then((result) => {
           if (result.value) {
-            oThis.handleDeleteUser(userid);
+            oThis.handleDeleteProject(projectid);
           } else if (result.dismiss === Swal.DismissReason.cancel) {
             Swal.fire(
               'Cancelled',
@@ -40,28 +50,25 @@ class TableView extends Component {
         })
     }
 
-    handleGetAllUser = () => {
+    handleGetAllProject = () => {
         oThis.handleGetToken(function (callback) {
-            oThis.handlePostListUser( function (callback) {
+            oThis.handlePostListProject( function (callback) {
+                oThis.initDataPost();
                 oThis.forceUpdate();
             });
         });
     }
 
-    handleDeleteUser = (userid) => {
-        postData['userid'] = userid;
+    handleDeleteProject = (projectid) => {
+        postData['projectid'] = projectid;
         oThis.handleGetToken(function (callback) {
-            oThis.handlePostDeleteUser( function (callback) {
-                oThis.handleGetAllUser();
-                oThis.forceUpdate();
+            oThis.handlePostDeleteProject( function (callback) {
+                oThis.initDataPost();
+                oThis.handleGetAllProject();
             });
         });
     }
-
-    componentDidUpdate(){
-        postData = {};
-    }
-
+    
     // =============================================================================
     initServerVars = () => {
         serverDataBody = null;
@@ -109,7 +116,7 @@ class TableView extends Component {
       req.end();
     }
 
-    handlePostListUser = (callback) => {
+    handlePostListProject = (callback) => {
         oThis.initServerVars();
         postData["mode"] = 0;
 
@@ -118,7 +125,7 @@ class TableView extends Component {
           "method": "POST",
           "hostname": 'ingen4u.ip-dynamic.com',
           "port": 3100,
-          "path": "/users",
+          "path": "/project",
           "headers": {
             "Content-Type": "application/json"
           }
@@ -159,16 +166,16 @@ class TableView extends Component {
         req.end();
     }
 
-    handlePostDeleteUser = (callback) => {
+    handlePostDeleteProject = (callback) => {
         oThis.initServerVars();
-        postData["mode"] = 3;
+        postData["mode"] = 2;
 
         var http = require("http");
         var options = {
           "method": "POST",
           "hostname": 'ingen4u.ip-dynamic.com',
           "port": 3100,
-          "path": "/users",
+          "path": "/project",
           "headers": {
             "Content-Type": "application/json"
           }
@@ -234,40 +241,19 @@ class TableView extends Component {
                 return(
                     <tr>
                         <td class="text-center">
-                            <img src="../../../assets/img/avatars/6.jpg" width="22" height="22" class="img-circle" />
+                            {d.projectname}
                         </td>
                         <td class="text-center">
-                            {d.username}
+                            {d.ownername}
                         </td>
                         <td class="text-center">
-                            {d.fullname}
+                            {d.projectlocation}
                         </td>
                         <td class="text-center">
-                            {d.phone}
+                            {d.projectdescription}
                         </td>
                         <td class="text-center">
-                            {d.email}
-                        </td>
-                        <td class="text-center">
-                        {
-                            d.gender === 1 ? (
-                                ('Male')
-                            ) : (
-                                ('Female')
-                            )
-                        }
-                        </td>
-                        <td class="text-center">
-                        {
-                            d.level === 1 ? (
-                                <span class="badge badge-success">Admin</span>
-                            ) : (
-                                <span class="badge badge-secondary">Client</span>
-                            )
-                        }
-                        </td>
-                        <td class="text-center">
-                            { d.created_on.replace('T',' ').substring(0, d.created_on.length - 5) }
+                            {d.created_on.replace('T',' ').substring(0, d.created_on.length - 5)}
                         </td>
                         <td class="text-center">
                         {
@@ -279,7 +265,7 @@ class TableView extends Component {
                         }
                         </td>
                         <td class="text-center">
-                            <button type="button" class="btn btn-sm btn-pill btn-danger" onClick={event=>oThis.confirmDelete(d.userid)}>Delete</button>&nbsp;&nbsp;
+                            <button type="button" class="btn btn-sm btn-pill btn-danger" onClick={event=>oThis.confirmDelete(d.projectid)}>Delete</button>&nbsp;&nbsp;
                             <button type="button" class="btn btn-sm btn-pill btn-warning">Edit</button>
                         </td>
                     </tr>
@@ -287,9 +273,10 @@ class TableView extends Component {
             });
             return (varRenderContent);
         }
-        
-        return ('');
+
+        return('');
     }
+
 }
 
 export default TableView;
